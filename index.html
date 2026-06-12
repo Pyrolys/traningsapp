@@ -240,6 +240,22 @@ textarea.daynotes:focus{outline:none;border-color:var(--styrka);background:#fff}
 .gart .arr{stroke:var(--gold);stroke-width:3}
 #gdesc{font-size:14px;color:var(--ink);line-height:1.5}
 
+/* ---------- strukturerad logg + utveckling ---------- */
+.exfields{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end;max-width:178px;flex-shrink:0}
+.exlog.w{width:56px}
+.exlog.r{width:40px;text-align:center;padding:7px 2px}
+.exlegacy{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.statwrap{margin:16px 0 30px;display:flex;flex-direction:column;gap:12px}
+.statcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.bigidx{font-family:'Anton',sans-serif;font-size:42px;line-height:1;margin-top:6px}
+.idxpos{color:var(--lugn)}
+.idxneg{color:var(--hard)}
+table.stat{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+table.stat th{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:6px 4px;border-bottom:1px solid var(--line)}
+table.stat td{padding:7px 4px;border-bottom:1px dashed var(--line);font-family:'IBM Plex Mono',monospace;font-size:12.5px}
+.pct.pos{color:var(--lugn);font-weight:700}
+.pct.neg{color:var(--hard);font-weight:700}
+
 /* ---------- utrustningsväxlare ---------- */
 .eqtoggle{
   display:flex;gap:0;margin:10px 0 2px;
@@ -599,6 +615,11 @@ function renderNav(active){
     b.onclick=()=>renderWeek(w.nr);
     nav.appendChild(b);
   });
+  const u=document.createElement("button");
+  u.className="wchip"+(active==="utv"?" active":"");
+  u.innerHTML="📈<span class='ph'>Utveckling</span>";
+  u.onclick=renderProgress;
+  nav.appendChild(u);
 }
 
 function renderWeek(nr, keepScroll){
@@ -633,8 +654,23 @@ function renderWeek(nr, keepScroll){
       : "";
     const exHtml=list.map((e,j)=>{
       const gk=guideKey(e.ex);
-      return "<div class='exrow'><div class='exinfo"+(gk?" haslink' role='button' tabindex='0' data-g='"+gk+"' aria-label='Visa hur "+esc(e.ex)+" utförs'":"'")+"><div class='exname'>"+e.ex+"</div><div class='extarget'>"+e.t+"</div></div>"+
-      "<input class='exlog' data-id='"+id+"' data-f='"+pf+j+"' placeholder='logga' value='"+esc(rec[pf+j]||"")+"' aria-label='Logg för "+e.ex+"'></div>";
+      const f=pf+j, v=rec[f];
+      const info="<div class='exinfo"+(gk?" haslink' role='button' tabindex='0' data-g='"+gk+"' aria-label='Visa hur "+esc(e.ex)+" utförs'":"'")+"><div class='exname'>"+e.ex+"</div><div class='extarget'>"+e.t+"</div>"+((typeof v==="string"&&v)?"<div class='exlegacy'>tidigare: "+esc(v)+"</div>":"")+"</div>";
+      let fields;
+      if(gk){
+        const o=(v&&typeof v==="object")?v:{};
+        const n=setCount(e.t);
+        let reps="";
+        for(let s=0;s<n;s++) reps+="<input class='exlog r' inputmode='numeric' maxlength='3' data-id='"+id+"' data-f='"+f+"' data-k='r"+s+"' placeholder='reps' value='"+esc((o.r||[])[s]||"")+"' aria-label='Set "+(s+1)+" reps, "+esc(e.ex)+"'>";
+        fields="<div class='exfields'>"+(useBW?"":"<input class='exlog w' inputmode='decimal' data-id='"+id+"' data-f='"+f+"' data-k='w' placeholder='kg' value='"+esc(o.w||"")+"' aria-label='Vikt i kg, "+esc(e.ex)+"'>")+reps+"</div>";
+      } else if(/^Logga tid/.test(e.ex)){
+        const o=(v&&typeof v==="object")?v:{};
+        fields="<div class='exfields'>"+["min","km","puls"].map(k=>"<input class='exlog w' inputmode='decimal' data-id='"+id+"' data-f='"+f+"' data-k='"+k+"' placeholder='"+k+"' value='"+esc(o[k]||"")+"' aria-label='"+k+"'>").join("")+"</div>";
+      } else {
+        const ph=/puls/i.test(e.ex)?"puls":(/tid/i.test(e.ex)?"min":"antal");
+        fields="<input class='exlog w' inputmode='decimal' data-id='"+id+"' data-f='"+f+"' placeholder='"+ph+"' value='"+esc(typeof v==="string"?v:"")+"' aria-label='Logg för "+esc(e.ex)+"'>";
+      }
+      return "<div class='exrow'>"+info+fields+"</div>";
     }).join("");
     card.innerHTML=
       "<button class='dhead' aria-expanded='"+OPEN.has(id)+"'>"+
@@ -683,9 +719,16 @@ function renderWeek(nr, keepScroll){
   });
   main.querySelectorAll(".exlog, .daynotes").forEach(inp=>{
     inp.addEventListener("input",()=>{
-      const id=inp.dataset.id;
+      const id=inp.dataset.id, f=inp.dataset.f, k=inp.dataset.k;
       DB[id]=DB[id]||{};
-      DB[id][inp.dataset.f]=inp.value;
+      if(k){
+        let o=DB[id][f];
+        if(!o||typeof o!=="object") o={w:"",r:[]};
+        if(k==="w") o.w=inp.value;
+        else if(k[0]==="r"&&k.length>1) o.r[+k.slice(1)]=inp.value;
+        else o[k]=inp.value;
+        DB[id][f]=o;
+      } else DB[id][f]=inp.value;
       save(DB);
     });
   });
@@ -703,6 +746,75 @@ function renderWeek(nr, keepScroll){
 }
 
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); }
+
+/* ============ UTVECKLING ============ */
+function setCount(t){ const m=String(t).match(/^(\d+)\s*×/); return m?Math.max(1,Math.min(6,parseInt(m[1]))):1; }
+function num(x){ const n=parseFloat(String(x==null?"":x).replace(",",".")); return isFinite(n)?n:0; }
+function vol(o){
+  if(!o||typeof o!=="object") return {v:0,wt:false};
+  const reps=(o.r||[]).reduce((a,b)=>a+num(b),0);
+  const w=num(o.w);
+  if(reps<=0) return {v:0,wt:false};
+  return w>0?{v:w*reps,wt:true}:{v:reps,wt:false};
+}
+function renderProgress(){
+  renderNav("utv");
+  const series={}, runs=[];
+  WEEKS.forEach(w=>w.days.forEach((d,i)=>{
+    const id=dayId(w.nr,i), rec=DB[id]||{};
+    const useBW=d.bw&&rec.eq==="bw";
+    const list=useBW?d.bw:d.ex, pf=useBW?"bw":"ex";
+    list.forEach((e,j)=>{
+      const v=rec[pf+j];
+      const gk=guideKey(e.ex);
+      if(gk){
+        const r=vol(v);
+        if(r.v>0){
+          const key=gk+"|"+(useBW?"bw":"v");
+          (series[key]=series[key]||{name:(GUIDE[gk]?GUIDE[gk].n:e.ex)+(useBW?" (kroppsvikt)":""),pts:[]}).pts.push({wk:w.nr,v:r.v});
+        }
+      } else if(/^Logga tid/.test(e.ex)&&v&&typeof v==="object"&&(num(v.min)>0||num(v.km)>0)){
+        runs.push({wk:w.nr,min:num(v.min),km:num(v.km),puls:num(v.puls)});
+      }
+    });
+  }));
+  const rows=Object.values(series).map(s=>{
+    const a=s.pts[0], b=s.pts[s.pts.length-1];
+    const pct=(s.pts.length>=2&&a.v>0)?100*(b.v-a.v)/a.v:null;
+    return {name:s.name,av:a,bv:b,pct};
+  });
+  const pcts=rows.filter(r=>r.pct!==null).map(r=>r.pct);
+  const idx=pcts.length?pcts.reduce((x,y)=>x+y,0)/pcts.length:null;
+  let h="<div class='weekhead'><div class='eyebrow'>Hela sommaren</div><h2>Utveckling</h2></div><div class='statwrap'>";
+  h+="<div class='statcard'><div class='eyebrow'>Styrkeindex mot utgångsläget</div>";
+  h+= idx===null
+    ? "<p style='font-size:14px;color:var(--muted);margin-top:6px'>Logga vikt och reps på minst två pass av samma övning, så räknas index ut här automatiskt. Allt sköter sig självt — fortsätt bara träna.</p>"
+    : "<div class='bigidx "+(idx>=0?"idxpos":"idxneg")+"'>"+(idx>=0?"+":"")+Math.round(idx)+" %</div><p style='font-size:12px;color:var(--muted);margin-top:6px'>Snitt över övningarna nedan. Mått: volymlast — vikt × totala reps (eller bara reps utan vikt) — senaste loggade pass jämfört med ditt första.</p>";
+  h+="</div>";
+  if(rows.length){
+    h+="<div class='statcard'><table class='stat'><tr><th>Övning</th><th>Start</th><th>Senast</th><th>±</th></tr>";
+    rows.forEach(r=>{
+      h+="<tr><td>"+esc(r.name)+"</td><td>v"+r.av.wk+" · "+Math.round(r.av.v)+"</td><td>v"+r.bv.wk+" · "+Math.round(r.bv.v)+"</td><td>"+(r.pct===null?"–":"<span class='pct "+(r.pct>=0?"pos":"neg")+"'>"+(r.pct>=0?"+":"")+Math.round(r.pct)+"%</span>")+"</td></tr>";
+    });
+    h+="</table></div>";
+  }
+  if(runs.length){
+    h+="<div class='statcard'><div class='eyebrow'>Löpning</div><table class='stat'><tr><th>V</th><th>km</th><th>min</th><th>tempo</th><th>puls</th></tr>";
+    runs.forEach(r=>{
+      let tempo="–";
+      if(r.km>0&&r.min>0){
+        const t=r.min/r.km; let mm=Math.floor(t), ss=Math.round((t%1)*60);
+        if(ss===60){mm++;ss=0;}
+        tempo=mm+":"+String(ss).padStart(2,"0");
+      }
+      h+="<tr><td>v"+r.wk+"</td><td>"+(r.km||"–")+"</td><td>"+(r.min||"–")+"</td><td>"+tempo+"</td><td>"+(r.puls||"–")+"</td></tr>";
+    });
+    h+="</table><p style='font-size:12px;color:var(--muted);margin-top:8px'>Bästa konditionsmätaren: samma runda i samma lugna ansträngning. Sjunker tempot eller pulsen över veckorna byggs basen — det är comebacken i siffror.</p></div>";
+  }
+  h+="<div class='statcard'><p style='font-size:12px;color:var(--muted)'>Obs: när block 2 börjar (v. 30) byts flera övningar mot tyngre varianter — en dipp i index just där är normalt och betyder inte att du blivit svagare. Jämför helst inom samma block, och lita på testveckan v. 34 som facit.</p></div></div>";
+  main.innerHTML=h;
+  window.scrollTo({top:0});
+}
 
 /* ============ EXPORT / IMPORT ============ */
 document.getElementById("exportbtn").onclick=()=>{
