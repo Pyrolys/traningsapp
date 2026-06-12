@@ -753,7 +753,12 @@ async function pullRemote(){
   syncing=true; setStatus("Hämtar från GitHub …");
   try{
     const r=await fetch(ghUrl(),{headers:ghHeaders()});
-    if(r.status===404){ lastSha=null; setStatus("Anslutet. Ingen logg i repot ännu — skapas vid första passet.","ok"); syncing=false; pushNow(); return; }
+    if(r.status===404){
+      lastSha=null;
+      const rep=await fetch("https://api.github.com/repos/"+SYNC.owner+"/"+SYNC.repo,{headers:ghHeaders()});
+      if(rep.status===404){ setStatus("GitHub hittar inte repot. Det betyder oftast att nyckeln saknar åtkomst (GitHub döljer privata repon som 'finns inte'). Kontrollera: token → Repository access → Only select repositories → välj repot, samt Contents: Read and write. Kolla även stavningen av användarnamn och repo.","err"); syncing=false; return; }
+      setStatus("Anslutet. Ingen logg i repot ännu — laddar upp …","ok"); syncing=false; pushNow(); return;
+    }
     if(r.status===401||r.status===403){ setStatus("Nyckeln avvisades. Kontrollera token och att den har Contents: Read and write för repot.","err"); syncing=false; return; }
     if(!r.ok) throw new Error(r.status);
     const j=await r.json();
@@ -777,7 +782,7 @@ async function pullRemote(){
 function schedulePush(){
   if(!SYNC) return;
   clearTimeout(pushTimer);
-  pushTimer=setTimeout(pushNow,4000);
+  pushTimer=setTimeout(pushNow,1500);
 }
 async function pushNow(){
   if(!SYNC||syncing) return;
@@ -786,15 +791,23 @@ async function pushNow(){
     const body={message:"Träningslogg "+new Date().toISOString().slice(0,16),
       content:b64enc(JSON.stringify({app:KEY,data:DB},null,1))};
     if(lastSha) body.sha=lastSha;
-    const r=await fetch(ghUrl(),{method:"PUT",headers:{...ghHeaders(),"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const r=await fetch(ghUrl(),{method:"PUT",keepalive:true,headers:{...ghHeaders(),"Content-Type":"application/json"},body:JSON.stringify(body)});
     if(r.status===409){ syncing=false; await pullRemote(); return; }
-    if(!r.ok) throw new Error(r.status);
+    if(r.status===401){ setStatus("Nyckeln avvisades (401): fel inklistrad eller utgången. Skapa en ny token och klistra in igen.","err"); syncing=false; return; }
+    if(r.status===403){ setStatus("Skrivning nekad (403): nyckeln får läsa men inte skriva. Öppna din token på GitHub → Permissions → Contents måste vara 'Read and write', inte 'Read-only'.","err"); syncing=false; return; }
+    if(r.status===404){ setStatus("Uppladdning nekad (404): nyckeln når inte repot. Kontrollera tokenens Repository access (Only select repositories → ditt repo) och Contents: Read and write.","err"); syncing=false; return; }
+    if(!r.ok) throw new Error("HTTP "+r.status);
     const j=await r.json();
     lastSha=j.content.sha;
     setStatus("Synkad "+new Date().toLocaleTimeString("sv-SE",{hour:"2-digit",minute:"2-digit"})+".","ok");
-  }catch(e){ setStatus("Uppladdning misslyckades — försöker igen vid nästa ändring.","err"); }
+  }catch(e){ setStatus("Uppladdning misslyckades ("+(e.message||"nätverksfel")+") — försöker igen vid nästa ändring.","err"); }
   syncing=false;
 }
+/* synka direkt när appen lämnas — hinner före iOS paus */
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="hidden"&&SYNC){ clearTimeout(pushTimer); pushNow(); }
+});
+window.addEventListener("pagehide",()=>{ if(SYNC){ clearTimeout(pushTimer); pushNow(); } });
 
 $("syncbtn").onclick=()=>{
   if(SYNC){ $("s_owner").value=SYNC.owner; $("s_repo").value=SYNC.repo; $("s_token").value=SYNC.token; }
