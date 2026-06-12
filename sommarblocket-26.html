@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sommarblocket '26 — Träningskalender</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sommarblocket">
+<meta name="theme-color" content="#16222E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EDF0;        /* betonggolv */
+  --card:#FFFFFF;
+  --ink:#16222E;       /* bläck */
+  --muted:#5C6B78;
+  --line:#D3DAE0;
+  --styrka:#1F4FD8;    /* kobolt */
+  --lugn:#2E8B57;      /* skogsgrön */
+  --hard:#D9442B;      /* signalröd */
+  --vila:#9AA7B1;
+  --gold:#C9962E;
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--bg); color:var(--ink);
+  font-size:15px; line-height:1.45;
+  padding-bottom:90px;
+}
+.wrap{max-width:680px;margin:0 auto;padding:0 14px}
+
+/* ---------- header ---------- */
+header{
+  background:var(--ink); color:#F2F5F7;
+  padding:26px 0 20px;
+  border-bottom:4px solid var(--hard);
+}
+header .wrap{display:flex;flex-direction:column;gap:6px}
+h1{
+  font-family:'Anton',sans-serif;
+  font-size:clamp(34px,9vw,52px);
+  letter-spacing:.5px; line-height:.95;
+  text-transform:uppercase;
+}
+h1 .yr{color:var(--gold)}
+.sub{color:#B9C4CC;font-size:13px;font-weight:500}
+.progress{margin-top:12px}
+.progress .bar{height:8px;background:#2A3845;border-radius:4px;overflow:hidden}
+.progress .fill{height:100%;background:linear-gradient(90deg,var(--lugn),var(--gold));width:0%;transition:width .4s ease}
+.progress .lbl{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#B9C4CC;margin-top:5px}
+
+/* ---------- veckonav ---------- */
+nav.weeks{
+  position:sticky;top:0;z-index:20;
+  background:var(--bg);
+  padding:10px 0 8px;
+  border-bottom:1px solid var(--line);
+}
+nav.weeks .scroller{
+  display:flex;gap:8px;overflow-x:auto;padding:0 14px;
+  scrollbar-width:none;
+}
+nav.weeks .scroller::-webkit-scrollbar{display:none}
+.wchip{
+  flex:0 0 auto;
+  border:1.5px solid var(--line);
+  background:var(--card);
+  border-radius:999px;
+  padding:7px 13px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;font-weight:500;
+  color:var(--muted);
+  cursor:pointer;
+  transition:all .15s;
+}
+.wchip .ph{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.wchip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.wchip.deload{border-style:dashed}
+.wchip:focus-visible{outline:3px solid var(--styrka);outline-offset:2px}
+
+/* ---------- vecka ---------- */
+.weekhead{padding:20px 0 4px}
+.weekhead .eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);
+}
+.weekhead h2{
+  font-family:'Anton',sans-serif;
+  font-size:26px;letter-spacing:.4px;text-transform:uppercase;
+  margin:2px 0 6px;
+}
+.weekhead .focus{
+  font-size:14px;color:var(--ink);
+  background:var(--card);border-left:4px solid var(--gold);
+  padding:10px 12px;border-radius:0 var(--r) var(--r) 0;
+  margin-top:8px;
+}
+/* polariserings-remsa: veckans signatur */
+.polar{
+  display:flex;gap:3px;margin-top:12px;height:10px;
+}
+.polar span{flex:1;border-radius:3px}
+.polar span.styrka{background:var(--styrka)}
+.polar span.lugn{background:var(--lugn)}
+.polar span.hard{background:var(--hard)}
+.polar span.vila{background:var(--vila);opacity:.45}
+.polar-lbl{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px}
+
+/* ---------- dagkort ---------- */
+.days{display:flex;flex-direction:column;gap:10px;margin:16px 0 30px}
+.day{
+  background:var(--card);
+  border-radius:var(--r);
+  border:1px solid var(--line);
+  border-left-width:6px;
+  overflow:hidden;
+}
+.day.styrka{border-left-color:var(--styrka)}
+.day.lugn{border-left-color:var(--lugn)}
+.day.hard{border-left-color:var(--hard)}
+.day.vila{border-left-color:var(--vila)}
+.day.done{opacity:.78}
+.day.done .dname{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:var(--lugn)}
+.dhead{
+  width:100%;display:flex;align-items:center;gap:10px;
+  padding:13px 14px;
+  background:none;border:none;cursor:pointer;text-align:left;
+  font-family:inherit;font-size:inherit;color:inherit;
+}
+.dhead:focus-visible{outline:3px solid var(--styrka);outline-offset:-3px}
+.dow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;font-weight:500;color:var(--muted);
+  width:38px;flex-shrink:0;
+}
+.dname{font-weight:600;flex:1}
+.tag{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 8px;border-radius:4px;color:#fff;flex-shrink:0;
+}
+.tag.styrka{background:var(--styrka)}
+.tag.lugn{background:var(--lugn)}
+.tag.hard{background:var(--hard)}
+.tag.vila{background:var(--vila)}
+.chev{color:var(--muted);transition:transform .2s;flex-shrink:0}
+.day.open .chev{transform:rotate(180deg)}
+.dbody{display:none;padding:0 14px 14px;border-top:1px solid var(--line)}
+.day.open .dbody{display:block}
+.dnote{font-size:13px;color:var(--muted);padding:10px 0 4px}
+
+/* övningar */
+.exrow{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 0;border-bottom:1px dashed var(--line);
+}
+.exrow:last-of-type{border-bottom:none}
+.exinfo{flex:1;min-width:0}
+.exname{font-weight:600;font-size:14px}
+.extarget{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+.exlog{
+  width:118px;flex-shrink:0;
+  font-family:'IBM Plex Mono',monospace;font-size:13px;
+  border:1.5px solid var(--line);border-radius:6px;
+  padding:7px 8px;background:#F7F9FA;color:var(--ink);
+}
+.exlog:focus{outline:none;border-color:var(--styrka);background:#fff}
+.exlog::placeholder{color:#B0BBC4}
+
+textarea.daynotes{
+  width:100%;margin-top:10px;
+  font-family:'Inter',sans-serif;font-size:13px;
+  border:1.5px solid var(--line);border-radius:6px;
+  padding:8px 10px;background:#F7F9FA;color:var(--ink);
+  resize:vertical;min-height:40px;
+}
+textarea.daynotes:focus{outline:none;border-color:var(--styrka);background:#fff}
+
+.donebtn{
+  margin-top:12px;width:100%;
+  font-family:'Inter',sans-serif;font-weight:700;font-size:14px;
+  padding:11px;border-radius:8px;cursor:pointer;
+  border:2px solid var(--ink);background:var(--ink);color:#fff;
+  transition:all .15s;
+}
+.donebtn.undone{background:none;color:var(--ink)}
+.donebtn:focus-visible{outline:3px solid var(--styrka);outline-offset:2px}
+
+/* ---------- footer / verktyg ---------- */
+.toolbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:30;
+  background:var(--ink);
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+}
+.toolbar .inner{max-width:680px;margin:0 auto;display:flex;gap:8px;align-items:center}
+.toolbar .hint{flex:1;font-size:11px;color:#B9C4CC;line-height:1.3}
+.tbtn{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;
+  background:none;border:1.5px solid #46586A;color:#DDE5EA;
+  border-radius:6px;padding:8px 12px;cursor:pointer;
+}
+.tbtn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+#importfile{display:none}
+.storagewarn{
+  background:#FBEFE2;border:1px solid var(--gold);color:#7A5A14;
+  font-size:13px;border-radius:var(--r);padding:10px 12px;margin:14px 0 0;
+  display:none;
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+@media(min-width:560px){
+  .exlog{width:160px}
+}
+
+/* ---------- övningsguide ---------- */
+.exinfo.haslink{cursor:pointer}
+.exinfo.haslink .exname{
+  text-decoration:underline dotted var(--muted);
+  text-underline-offset:3px;
+}
+.exinfo.haslink:focus-visible{outline:3px solid var(--styrka);outline-offset:2px;border-radius:4px}
+.gartwrap{
+  background:#F7F9FA;border:1px solid var(--line);border-radius:8px;
+  margin:8px 0 12px;padding:8px 4px;
+}
+.gartwrap svg{width:100%;height:auto;display:block}
+.gart line,.gart polyline,.gart path,.gart circle{stroke:var(--ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.gart .fl{fill:var(--ink);stroke:none}
+.gart .gnd{stroke:var(--line);stroke-width:2.5}
+.gart .lite{opacity:.35}
+.gart .acc{stroke:var(--styrka)}
+.gart .arr{stroke:var(--gold);stroke-width:3}
+#gdesc{font-size:14px;color:var(--ink);line-height:1.5}
+
+/* ---------- utrustningsväxlare ---------- */
+.eqtoggle{
+  display:flex;gap:0;margin:10px 0 2px;
+  border:1.5px solid var(--line);border-radius:8px;overflow:hidden;
+}
+.eqbtn{
+  flex:1;padding:8px 6px;cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:12px;font-weight:600;
+  background:#F7F9FA;color:var(--muted);border:none;
+}
+.eqbtn+.eqbtn{border-left:1.5px solid var(--line)}
+.eqbtn.active{background:var(--ink);color:#fff}
+.eqbtn:focus-visible{outline:3px solid var(--styrka);outline-offset:-3px}
+
+/* ---------- synkpanel ---------- */
+.syncoverlay{
+  position:fixed;inset:0;z-index:40;
+  background:rgba(22,34,46,.55);
+  display:flex;align-items:center;justify-content:center;padding:18px;
+}
+.syncoverlay[hidden]{display:none}
+.synccard{
+  background:var(--card);border-radius:var(--r);
+  max-width:420px;width:100%;padding:20px;
+  max-height:85vh;overflow-y:auto;
+}
+.synccard h3{font-family:'Anton',sans-serif;font-size:20px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.synccard p{font-size:13px;color:var(--muted);margin-bottom:12px}
+.synccard label{display:block;font-size:12px;font-weight:600;margin:10px 0 4px}
+.synccard input{
+  width:100%;font-family:'IBM Plex Mono',monospace;font-size:13px;
+  border:1.5px solid var(--line);border-radius:6px;
+  padding:9px 10px;background:#F7F9FA;color:var(--ink);
+}
+.synccard input:focus{outline:none;border-color:var(--styrka);background:#fff}
+.syncstatus{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;
+  margin-top:12px;padding:8px 10px;border-radius:6px;
+  background:#F0F3F5;color:var(--muted);
+}
+.syncstatus.ok{background:#E6F2EB;color:#1F6B43}
+.syncstatus.err{background:#FBE9E5;color:#A33420}
+.syncbtns{display:flex;gap:8px;margin-top:14px}
+.syncbtns .donebtn{margin-top:0;flex:1}
+.synccard details{margin-top:12px;font-size:12px;color:var(--muted)}
+.synccard summary{cursor:pointer;font-weight:600}
+.synccard ol{padding-left:18px;margin-top:6px}
+.synccard li{margin-bottom:4px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Sommarblocket <span class="yr">'26</span></h1>
+    <div class="sub">11 veckor · styrka överkropp + kondition · comeback efter uppehållet · 15 juni–30 aug</div>
+    <div class="progress">
+      <div class="bar"><div class="fill" id="progfill"></div></div>
+      <div class="lbl" id="proglbl">0 av 0 pass klara</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap"><div class="storagewarn" id="storagewarn">
+  Webbläsaren kan inte spara lokalt här — dina loggar finns kvar bara under det här besöket. Använd <strong>Exportera</strong> för att spara en backupfil.
+</div></div>
+
+<nav class="weeks" aria-label="Veckor"><div class="scroller" id="weeknav"></div></nav>
+
+<main class="wrap" id="main"></main>
+
+<div class="toolbar">
+  <div class="inner">
+    <div class="hint" id="toolhint">Allt sparas automatiskt — direkt när du skriver.</div>
+    <button class="tbtn" id="syncbtn">Synk</button>
+  </div>
+</div>
+
+<div class="syncoverlay" id="syncpanel" hidden>
+  <div class="synccard">
+    <h3>GitHub-synk</h3>
+    <p>Loggarna sparas automatiskt i ett <strong>privat</strong> repo på ditt GitHub-konto, och hämtas tillbaka när du öppnar appen — på vilken enhet som helst.</p>
+    <label for="s_owner">GitHub-användarnamn</label>
+    <input id="s_owner" autocomplete="off" autocapitalize="none" placeholder="t.ex. johanh">
+    <label for="s_repo">Privat repo för loggarna</label>
+    <input id="s_repo" autocomplete="off" autocapitalize="none" placeholder="t.ex. traningslogg">
+    <label for="s_token">Åtkomstnyckel (token)</label>
+    <input id="s_token" type="password" autocomplete="off" placeholder="github_pat_…">
+    <div class="syncstatus" id="syncstatus">Inte ansluten.</div>
+    <div class="syncbtns">
+      <button class="donebtn" id="syncsave">Anslut & synka</button>
+      <button class="donebtn undone" id="syncclose">Stäng</button>
+    </div>
+    <div class="syncbtns"><button class="donebtn undone" id="syncforget" style="border-color:var(--hard);color:var(--hard)">Koppla från &amp; glöm nyckeln</button></div>
+    <label style="margin-top:14px">Backupfil (valfritt — synken sköter sig själv)</label>
+    <div class="syncbtns">
+      <button class="donebtn undone" id="exportbtn">Exportera</button>
+      <button class="donebtn undone" id="importbtn">Importera</button>
+    </div>
+    <input type="file" id="importfile" accept=".json">
+    <details>
+      <summary>Så skapar du repo + nyckel (engångsgrej, 3 min)</summary>
+      <ol>
+        <li>På github.com: skapa ett nytt <strong>privat</strong> repo, t.ex. <code>traningslogg</code>. Bocka i "Add a README" så repot inte är tomt.</li>
+        <li>Gå till Settings → Developer settings → Personal access tokens → <strong>Fine-grained tokens</strong> → Generate new token.</li>
+        <li>Repository access: <strong>Only select repositories</strong> → välj bara <code>traningslogg</code>.</li>
+        <li>Permissions → Repository permissions → <strong>Contents: Read and write</strong>. Inget annat.</li>
+        <li>Sätt gärna lång giltighetstid. Skapa, kopiera nyckeln och klistra in ovan.</li>
+      </ol>
+      <p>Nyckeln sparas bara i webbläsaren på den här enheten — den laddas aldrig upp någonstans utom till GitHubs eget API. Dela den aldrig med någon. På en ny enhet klistrar du in samma uppgifter en gång.</p>
+    </details>
+  </div>
+</div>
+
+<div class="syncoverlay" id="guidepanel" hidden>
+  <div class="synccard">
+    <h3 id="gtitle"></h3>
+    <div class="gartwrap" id="gartbox"></div>
+    <p id="gdesc"></p>
+    <div class="syncbtns"><button class="donebtn" id="gclose">Stäng</button></div>
+  </div>
+</div>
+
+<script>
+/* ============ PROGRAMDATA ============ */
+const EX = {
+  golvpress:   n => ({ex:"Golvpress", t:n}),
+  rodd:        n => ({ex:"Enarmsrodd", t:n+"/sida"}),
+  axelpress:   n => ({ex:"Axelpress stående", t:n}),
+  sidolyft:    () => ({ex:"Sidolyft", t:"2×12 lätt"}),
+  carry:       () => ({ex:"Farmer's carry", t:"3×40 m tungt"}),
+  pushup:      n => ({ex:"Push-ups, 3 s nedfas", t:n}),
+  pushuphöjd:  n => ({ex:"Push-ups, fötter upphöjda", t:n}),
+  renegade:    n => ({ex:"Renegade row", t:n+"/sida"}),
+  goblet:      n => ({ex:"Goblet squat", t:n}),
+  bulgarisk:   n => ({ex:"Bulgarisk split squat", t:n+"/sida"}),
+  rdl:         n => ({ex:"RDL", t:n}),
+  swing:       n => ({ex:"KB swing", t:n}),
+  kuff:        () => ({ex:"Band: utåtrotation + face pull", t:"2×15 + 2×15"}),
+  pausgolv:    n => ({ex:"Golvpress m. 2 s paus", t:n}),
+  enarmspress: n => ({ex:"Enarms axelpress", t:n+"/sida"}),
+};
+
+function styrkaA(sets, block2){
+  return block2
+    ? [EX.pausgolv(sets+"×5–6"), EX.rodd(sets+"×5–6 tungt"), EX.enarmspress("3×6"), EX.sidolyft(), EX.carry()]
+    : [EX.golvpress(sets+"×6–8"), EX.rodd(sets+"×8"), EX.axelpress("3×6–8"), EX.sidolyft(), EX.carry()];
+}
+function styrkaB(sets, block2){
+  return block2
+    ? [EX.pushuphöjd(sets+"×max−2"), EX.renegade("3×8 tungt"), EX.bulgarisk("3×8"), EX.rdl("3×6–8 tungt"), EX.swing("3×15"), EX.kuff()]
+    : [EX.pushup(sets+"×max−2"), EX.renegade("3×10"), EX.goblet("3×8"), EX.rdl("3×8"), EX.swing("3×15"), EX.kuff()];
+}
+function styrkaA_bw(sets, block2){
+  return block2
+    ? [{ex:"Push-ups, fötter upphöjda",t:sets+"×max−2"},{ex:"Rodd under bord, fötter framskjutna",t:sets+"×8–12"},{ex:"Pike push-ups, fötter upphöjda",t:"3×5–8"},{ex:"Y-T-W på golv",t:"2×12"},{ex:"Sidoplanka",t:"3×30 s/sida"}]
+    : [{ex:"Push-ups",t:sets+"×max−2"},{ex:"Rodd under bord / handduksrodd i dörrkarm",t:sets+"×8–12"},{ex:"Pike push-ups",t:"3×6–10"},{ex:"Y-T-W på golv",t:"2×10"},{ex:"Planka med axeltryck",t:"3×20 tryck"}];
+}
+function styrkaB_bw(sets, block2){
+  return block2
+    ? [{ex:"Push-ups, fötter upphöjda + 3 s nedfas",t:sets+"×max−2"},{ex:"Bulgarisk split squat (kroppsvikt)",t:"3×10/sida"},{ex:"Enbens-RDL med 2 s paus",t:"3×8/sida"},{ex:"Knäböjshopp, mjuk landning",t:"3×8"},{ex:"Sidoplanka med rotation",t:"3×8/sida"},{ex:"Y-T-W på golv",t:"2×12"}]
+    : [{ex:"Push-ups, 3 s nedfas",t:sets+"×max−2"},{ex:"Split squat",t:"3×10/sida"},{ex:"Enbens-RDL (kroppsvikt)",t:"3×8/sida"},{ex:"Enbens höftlyft",t:"3×12/sida"},{ex:"Planka med axeltryck",t:"3×20 tryck"},{ex:"Y-T-W på golv",t:"2×10"}];
+}
+function vDays(o){
+  return [
+    {dow:"Mån", name:o.aName||"Styrka A", type:"styrka", note:o.aNote||"1–2 reps kvar i tanken på allt. Vila 2–3 min mellan tunga set.", ex:o.a},
+    {dow:"Tis", name:"Zon 2-löpning "+o.z1, type:"lugn", note:"Pratbar fart hela vägen — hela meningar, inte korta fraser. Känns det för lätt är det rätt.", ex:[{ex:"Logga tid / distans / hur det kändes", t:o.z1}]},
+    {dow:"Ons", name:"Vila + 10 min rörlighet", type:"vila", note:"Axlar och höfter. Promenad räknas.", ex:[]},
+    {dow:"Tors", name:o.bName||"Styrka B", type:"styrka", note:o.bNote||"Filma RDL och swing från sidan första veckorna — höftfällningen är svår att känna själv.", ex:o.b},
+    {dow:"Fre", name:o.iName, type:o.iType||"hard", note:o.iNote||"Uppvärmning 10 min lugn jogg före, 5 min ned efter.", ex:[{ex:"Logga tider / hur det kändes", t:o.i}]},
+    {dow:"Lör", name:"Vila eller promenad", type:"vila", note:"", ex:[]},
+    {dow:"Sön", name:"Lång zon 2-löpning "+o.z2, type:"lugn", note:"Veckans viktigaste konditionspass. Gärna terräng. Gångpauser i backar är tillåtet och smart.", ex:[{ex:"Logga tid / distans / puls om du har", t:o.z2}]},
+  ];
+}
+
+const WEEKS = [
+  {nr:25, dates:"15–21 juni", phase:"Bas", deload:false,
+   focus:"Inlärningsvecka. Teknik före vikt — det här är fundamentet för hela sommaren. Efter borrelia-uppehållet: hellre för lätt än för tungt, kroppen ska bjudas in, inte chockas.",
+   days:vDays({a:styrkaA(3,false), b:styrkaB(3,false), z1:"30 min", z2:"40 min", iName:"Intervaller 4×3 min", i:"4×3 min hårt / 2 min jogg"})},
+  {nr:26, dates:"22–28 juni", phase:"Bas", deload:false,
+   focus:"Upp till 4 set på huvudövningarna. Löpningen ökar försiktigt — max ~10 % mer än förra veckan.",
+   days:vDays({a:styrkaA(4,false), b:styrkaB(4,false), z1:"35 min", z2:"45 min", iName:"Intervaller 5×3 min", i:"5×3 min hårt / 2 min jogg"})},
+  {nr:27, dates:"29 juni–5 juli", phase:"Bas", deload:false,
+   focus:"Samma set som förra veckan — sikta på 1–2 fler reps per set. Det är progressionen den här veckan.",
+   days:vDays({a:styrkaA(4,false), b:styrkaB(4,false), z1:"35 min", z2:"50 min", iName:"Intervaller 5×3 min", i:"5×3 min hårt / 2 min jogg"})},
+  {nr:28, dates:"6–12 juli", phase:"Bas", deload:false,
+   focus:"Sista basveckan. Når du övre repsgränsen på alla set: öka vikten eller sänk tempot nästa block.",
+   days:vDays({a:styrkaA(4,false), b:styrkaB(4,false), z1:"40 min", z2:"55 min", iName:"Intervaller 6×3 min", i:"6×3 min hårt / 2 min jogg"})},
+  {nr:29, dates:"13–19 juli", phase:"Deload", deload:true,
+   focus:"Halvera allt. Det ska kännas nästan löjligt lätt — det är här kroppen bygger det du tränat in. Lita på processen.",
+   days:vDays({a:styrkaA(2,false), b:styrkaB(2,false), z1:"25 min", z2:"40 min", iName:"Lugn löpning 20 min", iType:"lugn", i:"20 min lugnt — inga intervaller", iNote:"Deload gäller även löpningen.",
+     aName:"Styrka A — lätt", bName:"Styrka B — lätt", aNote:"2 set, lättare vikt, fint tempo.", bNote:"2 set, lättare vikt."})},
+  {nr:30, dates:"20–26 juli", phase:"Intensifiering", deload:false,
+   focus:"Nytt block: tyngre varianter, 5–6 reps där vikterna räcker. Push-ups med fötterna upphöjda, paus i botten på pressen.",
+   days:vDays({a:styrkaA(4,true), b:styrkaB(4,true), z1:"35 min", z2:"55 min", iName:"Tempopass 4×6 min", i:"4×6 min tempofart / 3 min jogg"})},
+  {nr:31, dates:"27 juli–2 aug", phase:"Intensifiering", deload:false,
+   focus:"Backintervaller in — kampsportsspecifik kondition som är snäll mot benen. Styrkan: +1–2 reps eller långsammare nedfas.",
+   days:vDays({a:styrkaA(4,true), b:styrkaB(4,true), z1:"40 min", z2:"60 min", iName:"Backintervaller 8×45 s", i:"8×45 s uppför / jogga ner"})},
+  {nr:32, dates:"3–9 aug", phase:"Intensifiering", deload:false,
+   focus:"4–5 set på press och rodd. Konditionen börjar sitta nu — jämför hur 40 min känns mot vecka 25.",
+   days:vDays({a:styrkaA(5,true), b:styrkaB(4,true), z1:"40 min", z2:"65 min", iName:"Intervaller 6×3 min", i:"6×3 min hårt / 2 min jogg"})},
+  {nr:33, dates:"10–16 aug", phase:"Intensifiering", deload:false,
+   focus:"Tyngsta veckan i programmet. Allt på 1 rep kvar i tanken — men inte till failure. Sov ordentligt.",
+   days:vDays({a:styrkaA(5,true), b:styrkaB(4,true), z1:"40 min", z2:"70 min", iName:"Backintervaller 10×45 s", i:"10×45 s uppför / jogga ner"})},
+  {nr:34, dates:"17–23 aug", phase:"Deload + test", deload:true,
+   focus:"Halverad volym, och två kvitton i slutet av veckan: max push-ups i ett set, och 5 km i jämnt högt tempo. Jämför med juni.",
+   days:[
+    {dow:"Mån", name:"Styrka A — lätt", type:"styrka", note:"2 set, lätt vikt.", ex:styrkaA(2,false)},
+    {dow:"Tis", name:"Zon 2-löpning 30 min", type:"lugn", note:"", ex:[{ex:"Logga tid / distans", t:"30 min"}]},
+    {dow:"Ons", name:"Vila + rörlighet", type:"vila", note:"", ex:[]},
+    {dow:"Tors", name:"TEST: Max push-ups", type:"styrka", note:"Ordentlig uppvärmning. Ett set till nästan max — strikt form, full kropp.", ex:[{ex:"Max push-ups, ett set", t:"resultat"}]},
+    {dow:"Fre", name:"Vila", type:"vila", note:"Pigga ben inför lördagens test.", ex:[]},
+    {dow:"Lör", name:"TEST: 5 km", type:"hard", note:"Jämnt, högt tempo. Det här är ditt kvitto på sommaren.", ex:[{ex:"5 km-tid", t:"mm:ss"},{ex:"Snittpuls om du har", t:"valfritt"}]},
+    {dow:"Sön", name:"Lugn promenad eller vila", type:"vila", note:"", ex:[]},
+   ]},
+  {nr:35, dates:"24–30 aug", phase:"Nedväxling", deload:false,
+   focus:"Trappa ner inför hösten och kampsportsterminen. In i terminstarten pigg — inte sliten. Det är så man undviker skadorna i september.",
+   days:vDays({a:styrkaA(3,true), b:styrkaB(3,true), z1:"30 min", z2:"45 min", iName:"Lugn löpning 25 min", iType:"lugn", i:"25 min lugnt — inga intervaller",
+     aNote:"3 set, behåll vikterna från v. 33 men färre set.", bNote:"3 set."})},
+];
+
+/* koppla kroppsviktsvarianter till alla styrkedagar */
+WEEKS.forEach(w=>{
+  const b2=w.nr>=30, s=w.deload?2:4;
+  w.days.forEach(d=>{
+    if(d.type!=="styrka"||d.name.startsWith("TEST")) return;
+    if(/^Styrka A/.test(d.name)) d.bw=styrkaA_bw(s,b2);
+    else if(/^Styrka B/.test(d.name)) d.bw=styrkaB_bw(s,b2);
+  });
+});
+
+/* ============ ÖVNINGSGUIDE ============ */
+/* ritverktyg: streckgubbar i två lägen, start → slut */
+function ln(a,b,dx,cls){return "<line"+(cls?" class='"+cls+"'":"")+" x1='"+(a[0]+dx)+"' y1='"+a[1]+"' x2='"+(b[0]+dx)+"' y2='"+b[1]+"'/>"}
+function pl(pts,dx,cls){return "<polyline"+(cls?" class='"+cls+"'":"")+" points='"+pts.map(p=>(p[0]+dx)+","+p[1]).join(" ")+"'/>"}
+function hd(x,y,dx){return "<circle cx='"+(x+dx)+"' cy='"+y+"' r='6.5'/>"}
+function gnd(dx){return ln([2,110],[104,110],dx,"gnd")}
+function dbell(x,y,dx){x+=dx;return "<circle class='fl' cx='"+(x-5)+"' cy='"+y+"' r='3.2'/><circle class='fl' cx='"+(x+5)+"' cy='"+y+"' r='3.2'/><line x1='"+(x-4)+"' y1='"+y+"' x2='"+(x+4)+"' y2='"+y+"'/>"}
+function kbell(x,y,dx){x+=dx;return "<circle class='fl' cx='"+x+"' cy='"+(y+4)+"' r='4.5'/><path d='M "+(x-4)+" "+(y+1)+" q 4 -8 8 0'/>"}
+const ARR="<path class='arr' d='M 108 62 h 18 m -6 -5 l 6 5 l -6 5'/>";
+function art(f1,f2){return "<svg class='gart' viewBox='0 0 240 124' xmlns='http://www.w3.org/2000/svg' role='img'>"+f1(0)+ARR+f2(130)+"</svg>"}
+
+const GUIDE={
+golvpress:{n:"Golvpress",d:"Ligg på rygg med böjda knän, en hantel i var hand (bilden visar ena armen). Sänk tills överarmarna nuddar golvet — golvet stoppar rörelsen i ett axelvänligt läge — pausa kort och pressa rakt upp. Armbågarna ca 45° ut från kroppen. Pausvarianten: stanna 2 s i botten på varje rep.",
+a:art(d=>gnd(d)+hd(16,103,d)+ln([28,104],[56,104],d)+pl([[56,104],[68,86],[78,110]],d)+pl([[32,104],[38,106],[38,90]],d)+dbell(38,87,d),
+     d=>gnd(d)+hd(16,103,d)+ln([28,104],[56,104],d)+pl([[56,104],[68,86],[78,110]],d)+ln([30,104],[30,70],d)+dbell(30,66,d))},
+rodd:{n:"Enarmsrodd",d:"Stöd ena handen och samma sidas knä mot en pall eller soffa, ryggen rak och nästan vågrät. Låt hanteln hänga rakt ner, dra den mot höften med armbågen tätt intill kroppen, sänk kontrollerat. Ryck inte med kroppen — ryggen är stilla, armen och skulderbladet jobbar.",
+a:art(d=>gnd(d)+"<rect x='"+(62+d)+"' y='84' width='34' height='4' class='fl'/>"+ln([66,88],[66,110],d,"gnd")+ln([92,88],[92,110],d,"gnd")+pl([[20,110],[26,90],[36,72]],d)+ln([36,72],[64,52],d)+hd(76,46,d)+pl([[64,52],[72,66],[78,84]],d,"lite")+pl([[60,54],[56,70],[54,88]],d)+dbell(54,92,d),
+     d=>gnd(d)+"<rect x='"+(62+d)+"' y='84' width='34' height='4' class='fl'/>"+ln([66,88],[66,110],d,"gnd")+ln([92,88],[92,110],d,"gnd")+pl([[20,110],[26,90],[36,72]],d)+ln([36,72],[64,52],d)+hd(76,46,d)+pl([[64,52],[72,66],[78,84]],d,"lite")+pl([[60,54],[52,62],[44,68]],d)+dbell(43,71,d))},
+axelpress:{n:"Axelpress",d:"Stå med hanteln/hantlarna vid axlarna. Spänn rumpa och mage så du inte svankar, pressa rakt upp till sträckta armar och sänk kontrollerat. Hellre lättare vikt med rak kropp än tung vikt med bakåtlutning. Enarmsvarianten: en hantel i taget, fri hand på höften.",
+a:art(d=>gnd(d)+hd(50,30,d)+ln([50,38],[50,66],d)+pl([[50,66],[50,88],[48,110]],d)+pl([[50,66],[54,88],[58,110]],d,"lite")+pl([[50,42],[62,50],[62,38]],d)+dbell(62,34,d)+pl([[50,42],[38,50],[38,38]],d,"lite"),
+     d=>gnd(d)+hd(50,30,d)+ln([50,38],[50,66],d)+pl([[50,66],[50,88],[48,110]],d)+pl([[50,66],[54,88],[58,110]],d,"lite")+pl([[50,42],[56,26],[56,12]],d)+dbell(56,8,d)+pl([[50,42],[44,26],[44,12]],d,"lite"))},
+sidolyft:{n:"Sidolyft",d:"Stå med hantlar längs sidorna, lätt böjda armbågar. Lyft rakt ut åt sidorna tills armarna är ungefär vågräta, sänk långsamt. Liten vikt, ingen sving — det här är axelhälsa, inte maxstyrka.",
+a:art(d=>gnd(d)+hd(50,28,d)+ln([50,36],[50,66],d)+pl([[50,66],[43,88],[41,110]],d)+pl([[50,66],[57,88],[59,110]],d)+pl([[50,40],[41,52],[39,63]],d)+dbell(39,67,d)+pl([[50,40],[59,52],[61,63]],d)+dbell(61,67,d),
+     d=>gnd(d)+hd(50,28,d)+ln([50,36],[50,66],d)+pl([[50,66],[43,88],[41,110]],d)+pl([[50,66],[57,88],[59,110]],d)+pl([[50,40],[35,38],[22,37]],d)+dbell(17,37,d)+pl([[50,40],[65,38],[78,37]],d)+dbell(83,37,d))},
+carry:{n:"Farmer's carry",d:"Ta de tyngsta hantlarna du har, en i var hand, och gå. Stolt hållning: bröstet upp, axlarna lätt bakåt, ingen lutning åt något håll. Tränar grepp, bål och axelstabilitet — direkt användbart i kampsporten.",
+a:art(d=>gnd(d)+hd(50,26,d)+ln([50,34],[50,62],d)+pl([[50,62],[41,84],[35,110]],d)+pl([[50,62],[59,84],[66,110]],d,"lite")+pl([[50,38],[53,52],[53,66]],d)+dbell(53,71,d),
+     d=>gnd(d)+hd(50,26,d)+ln([50,34],[50,62],d)+pl([[50,62],[59,84],[66,110]],d)+pl([[50,62],[41,84],[35,110]],d,"lite")+pl([[50,38],[53,52],[53,66]],d)+dbell(53,71,d))},
+pushups:{n:"Push-ups",d:"Kroppen som en rak planka från hjässa till häl — höften får varken hänga ner eller peka uppåt. Sänk dig kontrollerat (3 sekunder i tempovarianten), pressa upp bestämt. 'Max−2' betyder: stanna två reps innan du inte orkar fler. Tyngre variant: fötterna på en pall eller trappsteg.",
+a:art(d=>gnd(d)+hd(26,60,d)+ln([36,66],[36,110],d)+pl([[36,66],[68,80],[100,108]],d),
+     d=>gnd(d)+hd(25,90,d)+pl([[36,96],[48,104],[38,110]],d)+pl([[36,96],[68,98],[100,110]],d))},
+renegade:{n:"Renegade row",d:"Armhävningsposition med händerna på hantlarna (helst sexkantiga så de inte rullar), fötterna brett isär. Ro upp ena hanteln mot höften medan du kämpar för att hålla höften helt stilla — den får inte rotera. Stillheten är övningen; rodden är nästan en bonus.",
+a:art(d=>gnd(d)+hd(26,58,d)+ln([36,64],[36,103],d)+dbell(36,106,d)+ln([44,64],[44,103],d,"lite")+dbell(44,106,d)+pl([[36,64],[68,78],[100,108]],d),
+     d=>gnd(d)+hd(26,58,d)+ln([44,64],[44,103],d,"lite")+dbell(44,106,d)+pl([[36,64],[48,80],[42,70]],d)+dbell(40,67,d)+pl([[36,64],[68,78],[100,108]],d))},
+goblet:{n:"Goblet squat",d:"Håll hanteln eller kettlebellen vertikalt mot bröstet med båda händerna, som en pokal. Squatta med rak rygg tills armbågarna ungefär når insidan av knäna, pressa upp genom hälarna. Vikten framför kroppen rättar automatiskt till hållningen.",
+a:art(d=>gnd(d)+hd(52,26,d)+ln([52,34],[52,66],d)+pl([[52,66],[52,88],[50,110]],d)+pl([[52,38],[60,48],[58,42]],d)+kbell(63,42,d),
+     d=>gnd(d)+hd(46,40,d)+ln([48,48],[56,78],d)+pl([[56,78],[68,92],[56,110]],d)+pl([[48,52],[58,62],[56,56]],d)+kbell(61,56,d))},
+splitsquat:{n:"Split squat / Bulgarisk",d:"Stort steg fram, sänk bakre knät rakt ner mot golvet och pressa upp på främre benet. Höften går rakt ned, inte framåt — främre knät ungefär över foten. Bulgarisk variant: vila bakre fotens vrist på en pall eller soffa bakom dig, då jobbar främre benet ännu hårdare.",
+a:art(d=>gnd(d)+hd(50,30,d)+ln([50,38],[50,66],d)+pl([[50,66],[40,86],[36,110]],d)+pl([[50,66],[62,88],[72,110]],d,"lite"),
+     d=>gnd(d)+hd(50,44,d)+ln([50,52],[50,80],d)+pl([[50,80],[38,92],[34,110]],d)+pl([[50,80],[64,102],[78,108]],d,"lite"))},
+rdl:{n:"RDL — rumänsk marklyft",d:"Mjuka knän, hantlarna glider tätt längs benen. Skjut höften bakåt — tänk 'stäng en bildörr med rumpan' — tills det stramar i baksida lår, res dig sedan genom att pressa höften framåt. Rak rygg hela vägen: det är en höftfällning, inte en knäböj. Filma dig från sidan första gångerna.",
+a:art(d=>gnd(d)+hd(50,28,d)+ln([50,36],[50,66],d)+pl([[50,66],[49,88],[48,110]],d)+pl([[50,40],[53,56],[53,68]],d)+dbell(53,72,d),
+     d=>gnd(d)+hd(86,50,d)+ln([48,70],[76,55],d)+pl([[48,70],[46,90],[44,110]],d)+pl([[72,58],[72,76],[71,90]],d)+dbell(71,94,d))},
+enbensrdl:{n:"Enbens-RDL",d:"Stå på ett ben, fäll fram med rak rygg medan det andra benet sträcks bakåt som motvikt — överkropp och bakre ben ska bilda en linje. Att vingla är normalt; balansen är halva träningen. Gör det lättare med ett fingerstöd mot en vägg, tyngre med en hantel i handen.",
+a:art(d=>gnd(d)+hd(50,28,d)+ln([50,36],[50,66],d)+pl([[50,66],[49,88],[48,110]],d)+pl([[50,66],[54,88],[56,110]],d,"lite"),
+     d=>gnd(d)+hd(84,50,d)+ln([46,68],[74,54],d)+pl([[46,68],[45,90],[44,110]],d)+pl([[46,68],[64,66],[84,64]],d,"lite")+pl([[70,57],[69,74],[68,86]],d))},
+swing:{n:"Kettlebell swing",d:"Explosiv höftfällning: låt kettlebellen pendla bakåt mellan benen, snärta höften framåt och låt kraften kasta den upp till brösthöjd. Armarna är bara rep — det är höften som gör jobbet. Avsluta varje rep stående rakt med spänd rumpa. Känns det i ländryggen lyfter du med armarna i stället för att svinga med höften.",
+a:art(d=>gnd(d)+hd(78,52,d)+ln([46,70],[70,56],d)+pl([[46,70],[44,90],[42,110]],d)+pl([[66,58],[62,76],[58,90]],d)+kbell(57,92,d),
+     d=>gnd(d)+hd(50,28,d)+ln([50,36],[50,66],d)+pl([[50,66],[49,88],[48,110]],d)+pl([[50,42],[64,43],[78,44]],d)+kbell(84,42,d))},
+kuff:{n:"Band: utåtrotation + face pull",d:"Fäst ett gummiband i ett dörrhandtag. Utåtrotation: armbåge mot sidan i 90°, rotera underarmen utåt mot bandets motstånd (bilden). Face pull: dra bandet mot ansiktet med höga armbågar och kläm ihop skulderbladen. Lätt motstånd, kontrollerat tempo — programmets viktigaste skadeskydd för axlarna.",
+a:art(d=>ln([16,30],[16,110],d,"gnd")+gnd(d)+hd(62,30,d)+ln([62,38],[62,68],d)+pl([[62,68],[61,88],[60,110]],d)+pl([[62,44],[62,58],[46,58]],d)+ln([16,58],[46,58],d,"acc"),
+     d=>ln([16,30],[16,110],d,"gnd")+gnd(d)+hd(62,30,d)+ln([62,38],[62,68],d)+pl([[62,68],[61,88],[60,110]],d)+pl([[62,44],[62,58],[80,56]],d)+ln([16,58],[80,56],d,"acc"))},
+bordsrodd:{n:"Rodd under bord / handduksrodd",d:"Ligg under ett stadigt bord och grip kanten, kroppen rak med hälarna i golvet. Dra bröstet upp mot bordsskivan, sänk långsamt. Tyngre: fötterna längre fram eller upphöjda. Handduksvarianten: lägg en handduk över en stängd dörr, luta dig bakåt med raka armar och dra dig fram. Välj ett bord du litar på.",
+a:art(d=>gnd(d)+"<rect x='"+(28+d)+"' y='66' width='72' height='4' class='fl'/>"+ln([32,70],[32,110],d,"gnd")+ln([96,70],[96,110],d,"gnd")+hd(36,88,d)+ln([46,90],[46,72],d)+pl([[46,90],[70,98],[94,110]],d),
+     d=>gnd(d)+"<rect x='"+(28+d)+"' y='66' width='72' height='4' class='fl'/>"+ln([32,70],[32,110],d,"gnd")+ln([96,70],[96,110],d,"gnd")+hd(36,74,d)+pl([[46,78],[54,74],[46,71]],d)+pl([[46,78],[70,92],[94,110]],d))},
+pike:{n:"Pike push-ups",d:"Stå i ett uppochnedvänt V med höga höfter och händerna axelbrett. Böj armbågarna och sänk hjässan mot golvet mellan händerna, pressa upp igen. Det här är din axelpress utan vikter — belastningen går rakt över axlarna. Tyngre: fötterna på en pall.",
+a:art(d=>gnd(d)+hd(34,88,d)+ln([42,80],[36,110],d)+pl([[42,80],[64,52],[90,110]],d),
+     d=>gnd(d)+hd(31,102,d)+pl([[40,90],[28,100],[36,110]],d)+pl([[40,90],[63,56],[90,110]],d))},
+ytw:{n:"Y-T-W på golv",d:"Ligg på mage och lyft armar och bröst någon centimeter från golvet, tummarna pekar uppåt. Forma ett Y (armarna snett uppåt), sedan T (rakt ut åt sidorna), sedan W (böjda armbågar dragna mot sidorna) — håll varje läge 2 sekunder. Tränar samma stabiliserande axelmuskler som bandövningarna. Bilden visas uppifrån.",
+a:art(d=>hd(50,26,d)+ln([50,36],[50,88],d)+pl([[50,88],[44,98],[42,112]],d)+pl([[50,88],[56,98],[58,112]],d)+ln([50,40],[34,22],d)+ln([50,40],[66,22],d),
+     d=>hd(50,26,d)+ln([50,36],[50,88],d)+pl([[50,88],[44,98],[42,112]],d)+pl([[50,88],[56,98],[58,112]],d)+pl([[50,40],[36,48],[30,34]],d)+pl([[50,40],[64,48],[70,34]],d))},
+plankatryck:{n:"Planka med axeltryck",d:"Armhävningsposition med fötterna brett isär. Lyft ena handen och nudda motsatt axel utan att höften rör sig eller roterar, sätt ner och byt sida. Långsamt och kontrollerat — höftens stillhet är hela poängen.",
+a:art(d=>gnd(d)+hd(26,58,d)+ln([36,64],[36,110],d)+ln([43,64],[43,110],d,"lite")+pl([[36,64],[68,78],[100,108]],d),
+     d=>gnd(d)+hd(26,58,d)+ln([43,64],[43,110],d,"lite")+pl([[36,64],[48,76],[40,64]],d)+pl([[36,64],[68,78],[100,108]],d))},
+sidoplanka:{n:"Sidoplanka",d:"Ligg på sidan med stöd på underarmen, armbågen rakt under axeln. Lyft höften tills kroppen bildar en rak linje från huvud till fötter och håll. Rotationsvarianten: trä den övre armen under kroppen och öppna upp mot taket igen, kontrollerat.",
+a:art(d=>gnd(d)+hd(27,80,d)+ln([34,86],[32,104],d)+ln([32,104],[48,104],d)+pl([[34,86],[64,100],[92,106]],d),
+     d=>gnd(d)+hd(27,76,d)+ln([34,82],[32,104],d)+ln([32,104],[48,104],d)+pl([[34,82],[63,92],[92,104]],d))},
+hoftlyft:{n:"Höftlyft / glute bridge",d:"Ligg på rygg med böjda knän och fötterna nära rumpan. Pressa upp höften genom hälarna tills kroppen är rak från knän till axlar, kläm rumpan i toppen, sänk långsamt. Enbensvarianten: sträck ena benet rakt fram och lyft på det andra — då jobbar varje sida för sig.",
+a:art(d=>gnd(d)+hd(16,103,d)+ln([28,104],[56,104],d)+pl([[56,104],[68,86],[76,110]],d),
+     d=>gnd(d)+hd(16,103,d)+pl([[28,102],[56,84],[68,84],[76,110]],d)+pl([[56,84],[72,72],[86,64]],d,"lite"))},
+hopp:{n:"Knäböjshopp",d:"Squatta ner till ungefär halvdjupt och hoppa rakt upp med full kraft. Landa mjukt med böjda knän — landningen är viktigare än höjden. Få reps, full vila mellan seten, och aldrig på trötta ben. Bygger explosivitet som direkt överförs till kampsporten.",
+a:art(d=>gnd(d)+hd(46,42,d)+ln([48,50],[56,78],d)+pl([[56,78],[66,92],[54,110]],d)+pl([[48,54],[40,66],[34,74]],d),
+     d=>gnd(d)+hd(50,18,d)+ln([50,26],[50,52],d)+pl([[50,52],[52,72],[54,90]],d)+pl([[50,30],[44,18],[40,8]],d)+ln([46,98],[50,104],d,"gnd")+ln([56,98],[60,104],d,"gnd"))}
+};
+
+const GMAP=[[/pike/i,"pike"],[/max push-ups|push-ups/i,"pushups"],[/golvpress/i,"golvpress"],[/enarmsrodd/i,"rodd"],[/axelpress/i,"axelpress"],[/sidolyft/i,"sidolyft"],[/farmer/i,"carry"],[/renegade/i,"renegade"],[/goblet/i,"goblet"],[/bulgarisk|split squat/i,"splitsquat"],[/enbens-rdl/i,"enbensrdl"],[/rdl/i,"rdl"],[/swing/i,"swing"],[/utåtrotation|face pull/i,"kuff"],[/rodd under bord|handduksrodd/i,"bordsrodd"],[/y-t-w/i,"ytw"],[/planka med axeltryck/i,"plankatryck"],[/sidoplanka/i,"sidoplanka"],[/höftlyft/i,"hoftlyft"],[/knäböjshopp/i,"hopp"]];
+function guideKey(name){ for(const [re,k] of GMAP){ if(re.test(name)) return k; } return null; }
+function openGuide(key){
+  const g=GUIDE[key]; if(!g) return;
+  document.getElementById("gtitle").textContent=g.n;
+  document.getElementById("gartbox").innerHTML=g.a;
+  document.getElementById("gdesc").textContent=g.d;
+  document.getElementById("guidepanel").hidden=false;
+}
+document.getElementById("gclose").onclick=()=>{document.getElementById("guidepanel").hidden=true};
+document.getElementById("guidepanel").addEventListener("click",e=>{ if(e.target.id==="guidepanel") document.getElementById("guidepanel").hidden=true; });
+
+/* ============ LAGRING ============ */
+const KEY="sommarblocket26";
+let mem={};
+let canStore=true;
+try{ localStorage.setItem(KEY+"_t","1"); localStorage.removeItem(KEY+"_t"); }
+catch(e){ canStore=false; document.getElementById("storagewarn").style.display="block"; }
+function load(){ if(!canStore) return mem; try{ return JSON.parse(localStorage.getItem(KEY))||{} }catch(e){ return mem } }
+function save(d){ d._updated=Date.now(); mem=d; if(canStore){ try{ localStorage.setItem(KEY,JSON.stringify(d)) }catch(e){} } schedulePush(); }
+let DB=load();
+
+/* ============ RENDER ============ */
+const main=document.getElementById("main");
+const nav=document.getElementById("weeknav");
+const OPEN=new Set();
+const PHASECLR={"Bas":"","Deload":"deload","Intensifiering":"","Deload + test":"deload","Nedväxling":""};
+
+function dayId(w,i){ return "v"+w+"d"+i; }
+function totalSessions(){ let t=0; WEEKS.forEach(w=>w.days.forEach(d=>{ if(d.type!=="vila") t++; })); return t; }
+function doneSessions(){ let t=0; WEEKS.forEach(w=>w.days.forEach((d,i)=>{ if(d.type!=="vila" && DB[dayId(w.nr,i)]?.done) t++; })); return t; }
+function updProgress(){
+  const tot=totalSessions(), done=doneSessions();
+  document.getElementById("progfill").style.width=(tot?100*done/tot:0)+"%";
+  document.getElementById("proglbl").textContent=done+" av "+tot+" pass klara";
+}
+
+function currentWeekNr(){
+  const now=new Date();
+  const start=new Date(2026,5,15); // 15 juni = v25 start
+  const diff=Math.floor((now-start)/(7*24*3600*1000));
+  const nr=25+diff;
+  return Math.min(35,Math.max(25,nr));
+}
+
+function renderNav(active){
+  nav.innerHTML="";
+  WEEKS.forEach(w=>{
+    const b=document.createElement("button");
+    b.className="wchip"+(w.deload?" deload":"")+(w.nr===active?" active":"");
+    b.innerHTML="v."+w.nr+"<span class='ph'>"+w.phase+"</span>";
+    b.onclick=()=>renderWeek(w.nr);
+    nav.appendChild(b);
+  });
+}
+
+function renderWeek(nr, keepScroll){
+  const sy=keepScroll?window.scrollY:0;
+  renderNav(nr);
+  const w=WEEKS.find(x=>x.nr===nr);
+  main.innerHTML="";
+  const head=document.createElement("div");
+  head.className="weekhead";
+  head.innerHTML=
+    "<div class='eyebrow'>Vecka "+w.nr+" · "+w.dates+"</div>"+
+    "<h2>"+w.phase+"</h2>"+
+    "<div class='polar'>"+w.days.map(d=>"<span class='"+d.type+"'></span>").join("")+"</div>"+
+    "<div class='polar-lbl'><span>mån</span><span>tis</span><span>ons</span><span>tors</span><span>fre</span><span>lör</span><span>sön</span></div>"+
+    "<div class='focus'>"+w.focus+"</div>";
+  main.appendChild(head);
+
+  const days=document.createElement("div");
+  days.className="days";
+  w.days.forEach((d,i)=>{
+    const id=dayId(w.nr,i);
+    const rec=DB[id]||{};
+    const useBW=d.bw&&rec.eq==="bw";
+    const list=useBW?d.bw:d.ex;
+    const pf=useBW?"bw":"ex";
+    const card=document.createElement("article");
+    card.className="day "+d.type+(rec.done?" done":"")+(OPEN.has(id)?" open":"");
+    const eqHtml=d.bw
+      ? "<div class='eqtoggle' role='group' aria-label='Utrustning'>"+
+        "<button class='eqbtn"+(!useBW?" active":"")+"' data-id='"+id+"' data-eq='vikter'>Hantlar &amp; KB</button>"+
+        "<button class='eqbtn"+(useBW?" active":"")+"' data-id='"+id+"' data-eq='bw'>Utan vikter</button></div>"
+      : "";
+    const exHtml=list.map((e,j)=>{
+      const gk=guideKey(e.ex);
+      return "<div class='exrow'><div class='exinfo"+(gk?" haslink' role='button' tabindex='0' data-g='"+gk+"' aria-label='Visa hur "+esc(e.ex)+" utförs'":"'")+"><div class='exname'>"+e.ex+"</div><div class='extarget'>"+e.t+"</div></div>"+
+      "<input class='exlog' data-id='"+id+"' data-f='"+pf+j+"' placeholder='logga' value='"+esc(rec[pf+j]||"")+"' aria-label='Logg för "+e.ex+"'></div>";
+    }).join("");
+    card.innerHTML=
+      "<button class='dhead' aria-expanded='"+OPEN.has(id)+"'>"+
+        "<span class='dow'>"+d.dow+"</span>"+
+        "<span class='dname'>"+d.name+"</span>"+
+        "<span class='tag "+d.type+"'>"+({styrka:"styrka",lugn:"lugn",hard:"hård",vila:"vila"})[d.type]+"</span>"+
+        "<svg class='chev' width='16' height='16' viewBox='0 0 16 16' fill='none' aria-hidden='true'><path d='M3 6l5 5 5-5' stroke='currentColor' stroke-width='2' stroke-linecap='round'/></svg>"+
+      "</button>"+
+      "<div class='dbody'>"+
+        eqHtml+
+        (useBW?"<div class='dnote'>Kroppsviktsläge — tempo, paus och enbensvarianter är din belastning idag.</div>":(d.note?"<div class='dnote'>"+d.note+"</div>":""))+
+        exHtml+
+        (d.type!=="vila"
+          ? "<textarea class='daynotes' data-id='"+id+"' data-f='notes' placeholder='Anteckningar — hur kändes det?' aria-label='Anteckningar'>"+esc(rec.notes||"")+"</textarea>"+
+            "<button class='donebtn "+(rec.done?"":"undone")+"' data-id='"+id+"'>"+(rec.done?"✓ Klart — bra jobbat":"Markera som klart")+"</button>"
+          : "")+
+      "</div>";
+    days.appendChild(card);
+  });
+  main.appendChild(days);
+
+  // events
+  main.querySelectorAll(".dhead").forEach(b=>{
+    b.onclick=()=>{
+      const card=b.closest(".day");
+      const open=card.classList.toggle("open");
+      b.setAttribute("aria-expanded",open);
+      const id=card.querySelector(".donebtn, .exlog, .daynotes, .eqbtn")?.dataset.id;
+      if(id){ open?OPEN.add(id):OPEN.delete(id); }
+    };
+  });
+  main.querySelectorAll(".exinfo.haslink").forEach(el=>{
+    const open=()=>openGuide(el.dataset.g);
+    el.onclick=open;
+    el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
+  });
+  main.querySelectorAll(".eqbtn").forEach(b=>{
+    b.onclick=()=>{
+      const id=b.dataset.id;
+      DB[id]=DB[id]||{};
+      DB[id].eq=b.dataset.eq;
+      save(DB);
+      OPEN.add(id);
+      renderWeek(nr,true);
+    };
+  });
+  main.querySelectorAll(".exlog, .daynotes").forEach(inp=>{
+    inp.addEventListener("input",()=>{
+      const id=inp.dataset.id;
+      DB[id]=DB[id]||{};
+      DB[id][inp.dataset.f]=inp.value;
+      save(DB);
+    });
+  });
+  main.querySelectorAll(".donebtn").forEach(b=>{
+    b.onclick=()=>{
+      const id=b.dataset.id;
+      DB[id]=DB[id]||{};
+      DB[id].done=!DB[id].done;
+      save(DB);
+      renderWeek(nr,true);
+      updProgress();
+    };
+  });
+  window.scrollTo({top:keepScroll?sy:0});
+}
+
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); }
+
+/* ============ EXPORT / IMPORT ============ */
+document.getElementById("exportbtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify({app:KEY,exported:new Date().toISOString(),data:DB},null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="sommarblocket26-backup.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+document.getElementById("importbtn").onclick=()=>document.getElementById("importfile").click();
+document.getElementById("importfile").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const j=JSON.parse(r.result);
+      if(j.app!==KEY||typeof j.data!=="object") throw 0;
+      DB=j.data; save(DB);
+      renderWeek(currentWeekNr()); updProgress();
+      alert("Importerat! Dina loggar är tillbaka.");
+    }catch(_){ alert("Filen gick inte att läsa. Välj en backupfil som exporterats härifrån."); }
+  };
+  r.readAsText(f);
+  e.target.value="";
+});
+
+/* ============ GITHUB-SYNK ============ */
+const SKEY=KEY+"_sync";
+const FILEPATH="sommarblocket26-logg.json";
+let SYNC=null, lastSha=null, pushTimer=null, syncing=false;
+try{ SYNC=JSON.parse(localStorage.getItem(SKEY)) }catch(e){}
+
+const $=id=>document.getElementById(id);
+function setStatus(msg,cls){ const s=$("syncstatus"); s.textContent=msg; s.className="syncstatus"+(cls?" "+cls:""); }
+function setHint(){
+  $("toolhint").textContent = SYNC
+    ? "Allt sparas automatiskt + synkas till GitHub ✓"
+    : "Allt sparas automatiskt — direkt när du skriver.";
+}
+function ghUrl(){ return "https://api.github.com/repos/"+SYNC.owner+"/"+SYNC.repo+"/contents/"+FILEPATH; }
+function ghHeaders(){ return {"Authorization":"Bearer "+SYNC.token,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"}; }
+function b64enc(s){ return btoa(String.fromCharCode(...new TextEncoder().encode(s))); }
+function b64dec(s){ return new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g,"")),c=>c.charCodeAt(0))); }
+
+async function pullRemote(){
+  if(!SYNC) return;
+  syncing=true; setStatus("Hämtar från GitHub …");
+  try{
+    const r=await fetch(ghUrl(),{headers:ghHeaders()});
+    if(r.status===404){ lastSha=null; setStatus("Anslutet. Ingen logg i repot ännu — skapas vid första passet.","ok"); syncing=false; pushNow(); return; }
+    if(r.status===401||r.status===403){ setStatus("Nyckeln avvisades. Kontrollera token och att den har Contents: Read and write för repot.","err"); syncing=false; return; }
+    if(!r.ok) throw new Error(r.status);
+    const j=await r.json();
+    lastSha=j.sha;
+    const remote=JSON.parse(b64dec(j.content));
+    const rd=remote.data||{};
+    if((rd._updated||0)>(DB._updated||0)){
+      DB=rd; mem=DB;
+      if(canStore){ try{ localStorage.setItem(KEY,JSON.stringify(DB)) }catch(e){} }
+      renderWeek(currentWeekNr()); updProgress();
+      setStatus("Synkad — senaste loggarna hämtade.","ok");
+    } else if((DB._updated||0)>(rd._updated||0)){
+      setStatus("Lokala loggar nyare — laddar upp …"); syncing=false; pushNow(); return;
+    } else {
+      setStatus("Synkad.","ok");
+    }
+  }catch(e){ setStatus("Kunde inte nå GitHub just nu. Loggarna sparas lokalt och synkas när det går igen.","err"); }
+  syncing=false;
+}
+
+function schedulePush(){
+  if(!SYNC) return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(pushNow,4000);
+}
+async function pushNow(){
+  if(!SYNC||syncing) return;
+  syncing=true;
+  try{
+    const body={message:"Träningslogg "+new Date().toISOString().slice(0,16),
+      content:b64enc(JSON.stringify({app:KEY,data:DB},null,1))};
+    if(lastSha) body.sha=lastSha;
+    const r=await fetch(ghUrl(),{method:"PUT",headers:{...ghHeaders(),"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(r.status===409){ syncing=false; await pullRemote(); return; }
+    if(!r.ok) throw new Error(r.status);
+    const j=await r.json();
+    lastSha=j.content.sha;
+    setStatus("Synkad "+new Date().toLocaleTimeString("sv-SE",{hour:"2-digit",minute:"2-digit"})+".","ok");
+  }catch(e){ setStatus("Uppladdning misslyckades — försöker igen vid nästa ändring.","err"); }
+  syncing=false;
+}
+
+$("syncbtn").onclick=()=>{
+  if(SYNC){ $("s_owner").value=SYNC.owner; $("s_repo").value=SYNC.repo; $("s_token").value=SYNC.token; }
+  $("syncpanel").hidden=false;
+};
+$("syncclose").onclick=()=>{ $("syncpanel").hidden=true; };
+$("syncpanel").addEventListener("click",e=>{ if(e.target.id==="syncpanel") $("syncpanel").hidden=true; });
+$("syncsave").onclick=()=>{
+  const owner=$("s_owner").value.trim(), repo=$("s_repo").value.trim(), token=$("s_token").value.trim();
+  if(!owner||!repo||!token){ setStatus("Fyll i alla tre fälten.","err"); return; }
+  SYNC={owner,repo,token}; lastSha=null;
+  try{ localStorage.setItem(SKEY,JSON.stringify(SYNC)) }catch(e){}
+  setHint(); pullRemote();
+};
+$("syncforget").onclick=()=>{
+  SYNC=null; lastSha=null;
+  try{ localStorage.removeItem(SKEY) }catch(e){}
+  $("s_owner").value=$("s_repo").value=$("s_token").value="";
+  setStatus("Frånkopplad. Nyckeln är borttagen från enheten. Loggarna finns kvar lokalt och i ditt repo.");
+  setHint();
+};
+
+/* ============ INIT ============ */
+setHint();
+renderWeek(currentWeekNr());
+updProgress();
+if(SYNC) pullRemote();
+</script>
+</body>
+</html>
